@@ -88,7 +88,7 @@ The CRC can detect damage but cannot repair it. A damaged length field is not co
 4. Compress the stream with zlib, which uses DEFLATE.
 5. Cut the compressed data into IDAT chunks and add the signature, IHDR and IEND.
 
-### Step 1: pixels as bytes
+### Pixels as bytes
 
 The colour type in IHDR says how many values each pixel has (RFC 2083 section 4.1.1). The table is for 8 bits per sample. With 16 bits per sample every value takes 2 bytes. Section 4.1.1 of the spec lists which bit depths each colour type allows.
 
@@ -102,7 +102,7 @@ The colour type in IHDR says how many values each pixel has (RFC 2083 section 4.
 
 T16 uses colour type 6. One row is 16 pixels of 4 bytes, so 64 bytes, plus 1 filter byte, so 65 bytes. Sixteen rows give 1040 bytes before compression. `PngDemo` confirms this by inflating the IDAT data and getting 1040 bytes back, in 16 rows of 65 bytes.
 
-### Step 2: filters
+### Filters
 
 Each row starts with one byte that names the filter used for that row. A filter replaces every byte of the row with its difference from a guess based on neighbouring bytes. The arithmetic wraps around at 256. A byte left of the first pixel and the row above the first row count as 0.
 
@@ -130,13 +130,13 @@ The filter does not make the data smaller. It has the same number of bytes, plus
 
 The encoder may choose a different filter for each row. In our `t16.png` the first byte of all 16 rows is `00`, so ImageIO used None everywhere. The compression in this sample comes from DEFLATE alone.
 
-### Steps 3 and 4: compression
+### Compression
 
 The joined rows go through zlib. A zlib stream has 2 header bytes, the DEFLATE data and a 4-byte check value that is not the PNG CRC (RFC 2083 section 5, RFC 1950). In our file the header is `78 5E`. The `78` means DEFLATE with a 32 KB window.
 
 DEFLATE combines two ideas and is from the same family as ZIP (RFC 1951). LZ77 replaces a repeated run of bytes with a short pointer to an earlier copy. Huffman coding gives short codes to common byte values and long codes to rare ones. Nothing is thrown away, so the decoder gets back the exact bytes. In T16 the 1040 bytes became 295 bytes.
 
-### Step 5: IDAT chunks
+### IDAT chunks
 
 The compressed bytes are placed in one or more IDAT chunks. A decoder joins the data of all IDAT chunks before inflating, so it does not matter where the cuts fall. Our file needs only one IDAT chunk.
 
