@@ -1,14 +1,10 @@
 package imgformats;
 
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 
 /**
- * Pushes one 8x8 block of T16 brightness through the lossy middle of JPEG:
- * level shift, DCT, quantization, then back again. It shows that the DCT alone
- * loses nothing and that the rounding in quantization is where detail goes.
+ * Shows how JPEG shrinks one 8x8 block of T16 brightness: DCT, then quantization
+ * at two quality levels. Rounding during quantization is where detail is lost.
  */
 public class JpegDctDemo {
 
@@ -24,7 +20,7 @@ public class JpegDctDemo {
         0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28,
         35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63 };
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         BufferedImage img = TestImage.t16Rgb();
         double[][] block = new double[8][8];
         for (int y = 0; y < 8; y++) {
@@ -32,15 +28,12 @@ public class JpegDctDemo {
                 int rgb = img.getRGB(x, y);
                 int r = (rgb >> 16) & 0xFF, g = (rgb >> 8) & 0xFF, b = rgb & 0xFF;
                 double lum = Math.round(0.299 * r + 0.587 * g + 0.114 * b); // JFIF brightness
-                block[y][x] = lum - 128; // level shift so values sit around zero
+                block[y][x] = lum - 128; // shift so values sit around zero
             }
         }
-        print("Top-left 8x8 block of T16 brightness, level shifted (Y - 128)", block);
 
         double[][] coef = dct(block);
-        print("DCT coefficients (our own DCT, rounded for printing)", coef);
-        System.out.println("DCT then inverse DCT with no quantization, biggest pixel error: "
-                + maxError(block, idct(coef)));
+        print("DCT coefficients of the top-left 8x8 brightness block", coef);
 
         for (int q : new int[] {75, 25}) {
             int[] table = scaledTable(q);
@@ -52,41 +45,19 @@ public class JpegDctDemo {
                 back[i / 8][i % 8] = v * table[i];
                 if (v == 0) zeros++;
             }
-            double[][] rec = idct(back);
             System.out.println();
             print("Quality " + q + ": quantized coefficients", quant);
             System.out.println("Zero coefficients: " + zeros + " of 64");
-            print("Quality " + q + ": reconstructed block (Y - 128)", rec);
-            System.out.println("Biggest pixel error: " + maxError(block, rec));
+            System.out.println("Biggest pixel error after decoding: " + maxError(block, idct(back)));
         }
-
-        double[][] flat = new double[8][8];
-        for (double[] row : flat) java.util.Arrays.fill(row, 100 - 128);
-        System.out.println();
-        print("Flat block (every pixel Y = 100), DCT coefficients", dct(flat));
-
-        checkAgainstFile(scaledTable(75));
     }
 
-    /** Library convention (IJG, also used by ImageIO): quality only scales the table. Not part of T.81. */
+    /** Library convention (Independent JPEG Group, also used by ImageIO): quality only scales the table. */
     static int[] scaledTable(int quality) {
         int scale = quality < 50 ? 5000 / quality : 200 - 2 * quality;
         int[] t = new int[64];
         for (int i = 0; i < 64; i++) t[i] = Math.max(1, Math.min(255, (BASE[i] * scale + 50) / 100));
         return t;
-    }
-
-    /** Compares our quality 75 table with table 0 in the ImageIO sample, which uses its default quality. */
-    static void checkAgainstFile(int[] ours) throws IOException {
-        File f = new File("samples/jpeg/t16.jpg");
-        if (!f.exists()) return;
-        byte[] d = Files.readAllBytes(f.toPath());
-        int p = 2;
-        while (!(d[p + 1] == (byte) 0xDB && d[p + 4] == 0)) p += 2 + JpegInspector.u16(d, p + 2);
-        boolean same = true;
-        for (int k = 0; k < 64; k++) same &= (d[p + 5 + k] & 0xFF) == ours[ZIGZAG[k]];
-        System.out.println();
-        System.out.println("Our quality 75 table equals DQT table 0 in " + f.getPath() + ": " + same);
     }
 
     static double[][] dct(double[][] p) {
@@ -96,12 +67,13 @@ public class JpegDctDemo {
                 double sum = 0;
                 for (int y = 0; y < 8; y++)
                     for (int x = 0; x < 8; x++)
-                        sum += p[y][x] * Math.cos((2 * x + 1) * v * Math.PI / 16) * Math.cos((2 * y + 1) * u * Math.PI / 16);
+                        sum += p[y][x] * cos(x, v) * cos(y, u);
                 out[u][v] = 0.25 * c(u) * c(v) * sum;
             }
         return out;
     }
 
+    /** Inverse DCT, used only to measure how far the decoded block drifts from the original. */
     static double[][] idct(double[][] f) {
         double[][] out = new double[8][8];
         for (int y = 0; y < 8; y++)
@@ -109,10 +81,14 @@ public class JpegDctDemo {
                 double sum = 0;
                 for (int u = 0; u < 8; u++)
                     for (int v = 0; v < 8; v++)
-                        sum += c(u) * c(v) * f[u][v] * Math.cos((2 * x + 1) * v * Math.PI / 16) * Math.cos((2 * y + 1) * u * Math.PI / 16);
-                out[y][x] = Math.round(0.25 * sum); // decoders round back to whole pixel values
+                        sum += c(u) * c(v) * f[u][v] * cos(x, v) * cos(y, u);
+                out[y][x] = Math.round(0.25 * sum);
             }
         return out;
+    }
+
+    static double cos(int pos, int freq) {
+        return Math.cos((2 * pos + 1) * freq * Math.PI / 16);
     }
 
     static double c(int k) {
