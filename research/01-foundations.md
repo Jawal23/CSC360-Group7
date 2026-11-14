@@ -75,8 +75,7 @@ java -cp out imgformats.FoundationsDemo
 
 ## References
 
-- Burger and Burge, Digital Image Processing: An Algorithmic Introduction Using Java (2016), section 1.5, image file formats and byte order.
-- Klawonn, Introduction to Computer Graphics Using Java 2D and 3D, chapter 4, buffered images and colour models.
-- W3C PNG Specification (Third Edition), for the PNG byte order.
-- GIF89a specification, for the GIF byte order.
+- Burger and Burge, Digital Image Processing: An Algorithmic Introduction Using Java, 2nd ed., 2016, section 1.5, image file formats and byte order (pages 19 to 20).
+- RFC 2083, PNG Specification version 1.0, section 2.1, for the PNG byte order.
+- Graphics Interchange Format, Version 89a, for the GIF byte order.
 - ITU-T T.81 and the JFIF 1.02 specification, for the JPEG segment lengths.
