@@ -140,7 +140,7 @@ java -cp out imgformats.JpegDctDemo
 
 Checks we ran:
 
-- The segments cover all 659 bytes exactly once. The program checks this and prints a warning if they do not.
+- The segments cover all 659 bytes exactly once. The program checks this and printed `Coverage: OK`.
 - Every length field plus 2 equals the segment size on disk.
 - The sampling factors were read from SOF0.
 

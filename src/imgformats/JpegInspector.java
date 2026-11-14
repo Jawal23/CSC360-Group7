@@ -29,7 +29,7 @@ public class JpegInspector implements FormatInspector {
         HexDump.printSegments(f, segs);
         // Every byte must belong to exactly one segment, so offsets and lengths add up
         String gap = HexDump.checkCoverage(f, segs);
-        if (gap != null) System.out.println("\nWarning: " + gap);
+        System.out.println("\nCoverage: " + (gap == null ? "OK" : gap));
         for (Segment s : segs) {
             int d = (int) s.offset() + 4; // first byte after marker and length
             if (s.name().equals("SOF0")) printProperties(f, d);
