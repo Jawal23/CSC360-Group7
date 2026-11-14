@@ -1,76 +1,85 @@
 # PNG, JPEG and GIF at byte level
 
-This is our group project for CSC360 Computer Graphics and Digital Image Processing at Ahmedabad University, Monsoon 2026. The topic was to explain the popular image formats with binary-level details. For each of PNG, JPEG and GIF we wrote a short report and a few small Java programs that read the bytes of a real file and label them.
+![One 16 x 16 image saved as PNG, JPEG and GIF, with each file split into labelled parts](docs/overview.png)
 
-All three formats are built from the same 16 x 16 test image (T16), so their sizes can be compared fairly. Each pixel has R = x * 17, G = y * 17 and B = 128.
+We saved one 16 x 16 test image as a PNG, a JPEG and a GIF. Then we read each file byte by byte, labelled every part and checked that no byte was left out. Project for CSC360 Computer Graphics and Digital Image Processing, Ahmedabad University, Monsoon 2026.
 
-## What you need
+## Results at a glance
 
-Java 17 or newer. The code uses only the JDK, so there is nothing else to install.
+| | PNG | JPEG | GIF |
+|---|---|---|---|
+| Size of the test image | 352 bytes | 659 bytes | 1,087 bytes |
+| First bytes | `89 50 4E 47 0D 0A 1A 0A` | `FF D8 FF E0` | `47 49 46 38 39 61` |
+| Compression | Row filters, then DEFLATE | DCT, quantization, Huffman | LZW |
+| Lossless | Yes | No | LZW yes, 256 colour limit no |
+| Byte order | Big-endian | Big-endian | Little-endian |
+| Report | [research/02-png.md](research/02-png.md) | [research/03-jpeg.md](research/03-jpeg.md) | [research/04-gif.md](research/04-gif.md) |
 
-## Build and run
+Raw RGB for the same image is 768 bytes. The side by side table is in [research/05-comparison.md](research/05-comparison.md).
 
-From the repo root on Linux or macOS:
+## Run it
 
-```
-./build.sh
-```
-
-On Windows PowerShell:
-
-```
-.\build.ps1
-```
-
-Both scripts compile `src/imgformats/*.java` into `out/` and then run the demos in this order: `FoundationsDemo`, `PngDemo`, `PngFilterDemo`, `JpegInspector`, `JpegDctDemo`, `GifDemo`, `GifLzwDemo` and `ComparisonDemo`. The PNG, JPEG and GIF programs write their sample file into `samples/` and print a table of labelled byte ranges. They also check that the labelled ranges cover every byte of the file exactly once.
-
-To run one demo by hand:
+You need Java 17 or newer and nothing else.
 
 ```
-javac -d out src/imgformats/*.java
-java -cp out imgformats.PngDemo
+./build.sh          # Linux and macOS
+.\build.ps1         # Windows PowerShell
 ```
 
-## Folder map
+The script compiles everything and runs every demo. Each format demo writes its sample file into `samples/`, prints a table of labelled byte ranges and checks that the ranges cover the whole file. A shortened PNG output:
 
 ```
-README.md           this file
-build.sh            compile and run on Linux or macOS
-build.ps1           compile and run on Windows
-research/
-  01-foundations.md   file formats, pixels, raw sizes, byte order
-  02-png.md           PNG report
-  03-jpeg.md          JPEG report
-  04-gif.md           GIF report
-  05-comparison.md    side by side table with measured sizes
-  references.md       books and specifications we used
-src/imgformats/     all Java code, one package
-samples/            image files the demos generate
-slides/             the final presentation as a PDF
+OFFSET   LEN     NAME                   BYTES (first 16)
+00000000 8       Signature              89 50 4E 47 0D 0A 1A 0A
+00000008 4       IHDR length            00 00 00 0D
+0000000C 4       IHDR type              49 48 44 52
+00000010 4       IHDR width             00 00 00 10
+00000014 4       IHDR height            00 00 00 10
+00000021 4       IDAT length            00 00 01 27
+00000029 295     IDAT data              78 5E 15 CC 41 81 45 11 00 00 C0 57 E1 57 50 41 ...
+0000015C 4       IEND CRC               AE 42 60 82
+
+Coverage: every byte belongs to exactly one segment
+```
+
+## What is in the repo
+
+```
+research/      write-ups: foundations, PNG, JPEG, GIF, comparison, references
+src/imgformats/  Java code, one package, JDK only
+samples/       the generated PNG, JPEG and GIF
+docs/          the figure at the top of this page
+slides/        the presentation as a PDF
+build.sh       compile and run (Linux, macOS)
+build.ps1      compile and run (Windows)
 ```
 
 ## The code
 
-Four small classes are shared by everything else.
-
 | Class | What it does |
 |-------|--------------|
-| `Segment` | One labelled byte range: offset, length, name, category and a short description |
-| `FormatInspector` | The interface each format inspector implements |
-| `HexDump` | Prints bytes as hex, prints a table of segments and checks coverage |
-| `TestImage` | Builds the T16 image |
+| `PngInspector`, `JpegInspector`, `GifInspector` | Split a real file into labelled byte ranges |
+| `PngDemo`, `GifDemo` | Write the sample, print the table, check the coverage |
+| `PngFilterDemo` | Shows the five PNG row filters on real rows |
+| `JpegDctDemo` | Runs our own DCT and quantization on one 8x8 block |
+| `GifLzwDemo` | Encodes and decodes a short index sequence with LZW |
+| `FoundationsDemo` | Raw sizes and byte order |
+| `ComparisonDemo` | Lists the samples and names each format from its first bytes |
+| `OverviewFigure` | Draws `docs/overview.png` from the sample files |
 
-Each format has an inspector that splits a real file into segments and a demo that writes the sample and prints the table (for JPEG the inspector does both). Each format also has one small program for its main idea: `PngFilterDemo`, `JpegDctDemo` and `GifLzwDemo`. `FoundationsDemo` checks the raw sizes and byte order, and `ComparisonDemo` lists the sample files with their sizes and the format their first bytes name.
+`JpegInspector` also writes the JPEG sample. `Segment`, `FormatInspector`, `HexDump` and `TestImage` are the shared helpers. To redraw the figure after a build, run `java -cp out imgformats.OverviewFigure` from the repo root.
+
+## Wiki
+
+The wiki has a page for each format, a guide to the code, a glossary and a FAQ: https://github.com/Jawal23/CSC360-Group7/wiki
 
 ## Authors
 
 | Name | Part |
 |------|------|
-| Yug Bangoriya | PNG, `research/02-png.md` |
-| Devraj Sangharajka | JPEG, `research/03-jpeg.md` |
-| Dvij Desai | GIF, `research/04-gif.md` |
-| Jawal Agrawal | Foundations, comparison, build scripts and slides |
+| Yug Bangoriya | PNG |
+| Devraj Sangharajka | JPEG |
+| Dvij Desai | GIF |
+| Jawal Agrawal | Foundations, comparison, build scripts, slides |
 
-## Sources
-
-See `research/references.md`.
+Sources are listed in [research/references.md](research/references.md).
