@@ -28,16 +28,11 @@ public class PngDemo {
         List<Segment> segs = new PngInspector().inspect(file);
         HexDump.printSegments(file, segs);
 
-        String problem = HexDump.checkCoverage(file, segs);
-        System.out.println();
-        System.out.println(problem == null
-                ? "Coverage: every byte belongs to exactly one segment"
-                : "Coverage problem: " + problem);
-
         System.out.println();
         printChunkChecks(file);
         System.out.println();
         printPixelData(file);
+        FormatSummary.png(out.toString(), file, segs);
     }
 
     // For each chunk: size on disk and which byte range the stored CRC really covers

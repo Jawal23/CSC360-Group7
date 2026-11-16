@@ -31,9 +31,6 @@ public final class GifDemo {
         GifInspector insp = new GifInspector();
         List<Segment> segs = insp.inspect(bytes);
         HexDump.printSegments(bytes, segs);
-        System.out.println();
-
-        String cov = HexDump.checkCoverage(bytes, segs);
-        System.out.println("Coverage: " + (cov == null ? "OK (every byte accounted for)" : cov));
+        FormatSummary.gif(out.toString(), bytes, segs);
     }
 }

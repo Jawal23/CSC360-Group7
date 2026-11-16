@@ -27,9 +27,6 @@ public class JpegInspector implements FormatInspector {
 
         System.out.println("File: " + out.getPath() + ", " + f.length + " bytes\n");
         HexDump.printSegments(f, segs);
-        // Every byte must belong to exactly one segment, so offsets and lengths add up
-        String gap = HexDump.checkCoverage(f, segs);
-        System.out.println("\nCoverage: " + (gap == null ? "OK" : gap));
         for (Segment s : segs) {
             int d = (int) s.offset() + 4; // first byte after marker and length
             if (s.name().equals("SOF0")) printProperties(f, d);
@@ -37,6 +34,7 @@ public class JpegInspector implements FormatInspector {
         for (Segment s : segs) {
             if (s.name().equals("DQT")) printTable(f, (int) s.offset() + 4);
         }
+        FormatSummary.jpeg(out.getPath(), f, segs);
     }
 
     /** SOF0 after the length: precision, height, width, component count, then 3 bytes per component. */
